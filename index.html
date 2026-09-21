@@ -1,0 +1,1207 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Branch Online Monitoring</title>
+    <style>
+        :root {
+            --bg: #f6f8fb;
+            --card: #fff;
+            --text: #172033;
+            --muted: #64748b;
+            --line: #e5e7eb;
+            --primary: #2563eb;
+            --danger: #dc2626;
+            --ok: #059669;
+            --warn: #d97706;
+            --gray: #94a3b8;
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        body {
+            margin: 0;
+            font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+            background: var(--bg);
+            color: var(--text)
+        }
+
+        .page {
+            max-width: 1600px;
+            margin: auto;
+            padding: 24px
+        }
+
+        .top {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            align-items: flex-start;
+            margin-bottom: 16px
+        }
+
+        .top h1 {
+            margin: 0 0 6px;
+            font-size: 26px
+        }
+
+        .top p {
+            margin: 0;
+            color: var(--muted)
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, .05)
+        }
+
+        .connect,
+        .filters,
+        .heatmap-card,
+        .timeline-card {
+            padding: 16px;
+            margin-bottom: 16px
+        }
+
+        .grid {
+            display: grid;
+            gap: 12px
+        }
+
+        .connect-grid {
+            grid-template-columns: 2fr 2fr auto
+        }
+
+        .filter-grid {
+            grid-template-columns: repeat(4, minmax(150px, 1fr))
+        }
+
+        label {
+            display: block;
+            font-size: 12px;
+            font-weight: 700;
+            color: #475569;
+            margin-bottom: 6px
+        }
+
+        input,
+        select {
+            width: 100%;
+            height: 40px;
+            border: 1px solid #cbd5e1;
+            border-radius: 9px;
+            padding: 0 10px;
+            background: #fff
+        }
+
+        button {
+            height: 40px;
+            border: 0;
+            border-radius: 9px;
+            padding: 0 14px;
+            font-weight: 700;
+            cursor: pointer
+        }
+
+        .primary {
+            background: var(--primary);
+            color: #fff
+        }
+
+        .secondary {
+            background: #fff;
+            border: 1px solid #cbd5e1;
+            color: #334155
+        }
+
+        .small {
+            height: 34px;
+            padding: 0 11px;
+            font-size: 12px
+        }
+
+        .actions {
+            display: flex;
+            gap: 8px;
+            align-items: flex-end
+        }
+
+        .right {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 14px
+        }
+
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
+            margin-bottom: 16px
+        }
+
+        .metric {
+            padding: 18px
+        }
+
+        .metric .k {
+            font-size: 13px;
+            color: var(--muted)
+        }
+
+        .metric .v {
+            font-size: 29px;
+            font-weight: 800;
+            margin-top: 6px
+        }
+
+        .query {
+            margin-top: 14px;
+            padding: 12px;
+            border-radius: 9px;
+            background: #0f172a;
+            color: #cbd5e1;
+            font: 12px/1.5 ui-monospace, monospace;
+            word-break: break-all
+        }
+
+        .error {
+            color: #b91c1c;
+            font-size: 12px;
+            margin-top: 8px
+        }
+
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin: 18px 0
+        }
+
+        .tab {
+            background: #fff;
+            border: 1px solid var(--line);
+            color: #475569
+        }
+
+        .tab.active {
+            background: #172033;
+            color: #fff
+        }
+
+        .view {
+            display: none
+        }
+
+        .view.active {
+            display: block
+        }
+
+        .table-card {
+            overflow: hidden
+        }
+
+        .table-head,
+        .pager {
+            padding: 14px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px
+        }
+
+        .table-head {
+            border-bottom: 1px solid var(--line)
+        }
+
+        .info {
+            font-size: 13px;
+            color: var(--muted)
+        }
+
+        .table-wrap {
+            overflow: auto
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed
+        }
+
+        th,
+        td {
+            padding: 9px 8px;
+            border-bottom: 1px solid #eef2f7;
+            text-align: left;
+            font-size: 12px;
+            white-space: normal;
+            overflow-wrap: anywhere;
+            vertical-align: top
+        }
+
+        th {
+            background: #f8fafc;
+            font-size: 11px;
+            color: #475569;
+            text-transform: uppercase;
+            position: sticky;
+            top: 0
+        }
+
+        tr:hover td {
+            background: #fafcff
+        }
+
+        .badge {
+            padding: 4px 8px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 800;
+            display: inline-block
+        }
+
+        .online {
+            background: #ecfdf5;
+            color: #047857
+        }
+
+        .offline {
+            background: #fef2f2;
+            color: #b91c1c
+        }
+
+        .active {
+            background: #eff6ff;
+            color: #1d4ed8
+        }
+
+        .inactive {
+            background: #f3f4f6;
+            color: #6b7280
+        }
+
+        .high {
+            color: var(--danger);
+            font-weight: 800
+        }
+
+        .mid {
+            color: var(--warn);
+            font-weight: 800
+        }
+
+        .low {
+            color: var(--ok);
+            font-weight: 800
+        }
+
+        .empty {
+            text-align: center;
+            padding: 35px;
+            color: var(--muted)
+        }
+
+        .section-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 14px
+        }
+
+        .section-title h2 {
+            margin: 0;
+            font-size: 17px
+        }
+
+        .legend {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            font-size: 12px;
+            color: var(--muted);
+            align-items: center
+        }
+
+        .legend span {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 3px;
+            display: inline-block
+        }
+
+        .dot.online-dot {
+            background: #22c55e
+        }
+
+        .dot.offline-dot {
+            background: #ef4444
+        }
+
+        .dot.mixed-dot {
+            background: #f59e0b
+        }
+
+        .dot.unknown-dot {
+            background: #e2e8f0
+        }
+
+        .heatmap-wrap {
+            overflow: auto;
+            border: 1px solid var(--line);
+            border-radius: 10px
+        }
+
+        .heatmap {
+            min-width: 1250px
+        }
+
+        .hm-row {
+            display: grid;
+            grid-template-columns: 260px repeat(24, minmax(30px, 1fr));
+            min-height: 34px;
+            border-bottom: 1px solid #eef2f7
+        }
+
+        .hm-row:last-child {
+            border-bottom: 0
+        }
+
+        .hm-head {
+            position: sticky;
+            top: 0;
+            background: #f8fafc;
+            z-index: 2;
+            font-size: 10px;
+            font-weight: 700;
+            color: #64748b
+        }
+
+        .hm-name {
+            padding: 8px 10px;
+            border-right: 1px solid #eef2f7;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap
+        }
+
+        .hm-cell {
+            border-right: 1px solid rgba(255, 255, 255, .7);
+            min-height: 34px;
+            position: relative;
+            cursor: pointer
+        }
+
+        .hm-cell[data-pct] {
+            background: color-mix(in srgb, #ef4444 calc(var(--off) * 1%), #22c55e)
+        }
+
+        .hm-cell.unknown {
+            background: #e2e8f0
+        }
+
+        .hm-cell:hover:after {
+            content: attr(data-tip);
+            position: absolute;
+            z-index: 10;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #0f172a;
+            color: #fff;
+            padding: 6px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            white-space: nowrap;
+            pointer-events: none
+        }
+
+        .timeline-meta {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 14px
+        }
+
+        .meta-box {
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: 10px
+        }
+
+        .meta-box .k {
+            font-size: 11px;
+            color: var(--muted)
+        }
+
+        .meta-box .v {
+            font-size: 14px;
+            font-weight: 800;
+            margin-top: 4px
+        }
+
+        .timeline-scale {
+            display: grid;
+            grid-template-columns: repeat(24, 1fr);
+            font-size: 10px;
+            color: #64748b;
+            margin-left: 0
+        }
+
+        .timeline-scale div {
+            border-left: 1px solid #e2e8f0;
+            padding-left: 3px
+        }
+
+        .timeline-track {
+            height: 52px;
+            border: 1px solid var(--line);
+            border-radius: 9px;
+            position: relative;
+            overflow: hidden;
+            background: #f1f5f9;
+            margin: 6px 0 14px
+        }
+
+        .segment {
+            position: absolute;
+            top: 0;
+            bottom: 0
+        }
+
+        .segment.on {
+            background: #22c55e
+        }
+
+        .segment.off {
+            background: #ef4444
+        }
+
+        .segment.unknown {
+            background: #cbd5e1
+        }
+
+        .interval-list {
+            display: grid;
+            gap: 8px
+        }
+
+        .interval {
+            display: grid;
+            grid-template-columns: 100px 1fr 1fr 100px;
+            gap: 10px;
+            border: 1px solid var(--line);
+            border-radius: 9px;
+            padding: 9px;
+            font-size: 12px
+        }
+
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, .48);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            z-index: 99
+        }
+
+        .modal.open {
+            display: flex
+        }
+
+        .modal-box {
+            background: #fff;
+            width: min(1100px, 96vw);
+            max-height: 90vh;
+            overflow: auto;
+            border-radius: 14px;
+            padding: 18px;
+            box-shadow: 0 24px 80px rgba(15, 23, 42, .25)
+        }
+
+        .modal-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px
+        }
+
+        .modal-head h3 {
+            margin: 0
+        }
+
+        .close {
+            font-size: 20px;
+            background: none
+        }
+
+        .note {
+            background: #fff7ed;
+            border: 1px solid #fed7aa;
+            color: #9a3412;
+            padding: 10px;
+            border-radius: 9px;
+            font-size: 12px;
+            margin-top: 10px
+        }
+
+        @media(max-width:1000px) {
+
+            .connect-grid,
+            .filter-grid {
+                grid-template-columns: repeat(2, 1fr)
+            }
+
+            .summary {
+                grid-template-columns: repeat(2, 1fr)
+            }
+
+            .timeline-meta {
+                grid-template-columns: repeat(2, 1fr)
+            }
+        }
+
+        @media(max-width:640px) {
+            .page {
+                padding: 12px
+            }
+
+            .connect-grid,
+            .filter-grid,
+            .summary,
+            .timeline-meta {
+                grid-template-columns: 1fr
+            }
+
+            .top {
+                flex-direction: column
+            }
+        }
+
+        .entity-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-top: 3px
+        }
+
+        .entity-status .badge {
+            padding: 2px 6px;
+            font-size: 9px
+        }
+
+        .device-line {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 700
+        }
+
+        .app-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            display: inline-block;
+            flex: 0 0 auto
+        }
+
+        .app-dot.on {
+            background: #22c55e;
+            box-shadow: 0 0 0 2px #dcfce7
+        }
+
+        .app-dot.off {
+            background: #ef4444;
+            box-shadow: 0 0 0 2px #fee2e2
+        }
+
+        .metric-pair {
+            line-height: 1.35
+        }
+
+        .metric-pair b {
+            display: block;
+            font-size: 12px
+        }
+
+        .metric-pair span {
+            display: block;
+            font-size: 11px;
+            color: #64748b;
+            margin-top: 2px
+        }
+
+        .date-range {
+            font-size: 11px;
+            line-height: 1.4
+        }
+
+        @media(max-width:1100px) {
+
+            .report-table th:nth-child(5),
+            .report-table td:nth-child(5) {
+                display: none
+            }
+
+            .report-table th:nth-child(12),
+            .report-table td:nth-child(12) {
+                display: none
+            }
+        }
+
+        @media(max-width:820px) {
+
+            .report-table th:nth-child(4),
+            .report-table td:nth-child(4) {
+                display: none
+            }
+
+            .report-table th:nth-child(6),
+            .report-table td:nth-child(6) {
+                display: none
+            }
+        }
+
+
+        .refresh-controls {
+            display: flex;
+            align-items: flex-end
+        }
+
+        .refresh-row {
+            display: flex;
+            gap: 6px;
+            align-items: center
+        }
+
+        .refresh-row input {
+            width: 72px
+        }
+
+        .refresh-row select {
+            width: 105px
+        }
+
+        .refresh-controls label {
+            margin-bottom: 4px
+        }
+
+        #refreshStatus {
+            margin-top: 4px;
+            text-align: right
+        }
+
+        .report-table th:nth-child(1) {
+            width: 4%
+        }
+
+        .report-table th:nth-child(2) {
+            width: 13%
+        }
+
+        .report-table th:nth-child(3) {
+            width: 14%
+        }
+
+        .report-table th:nth-child(4) {
+            width: 8%
+        }
+
+        .report-table th:nth-child(5) {
+            width: 6%
+        }
+
+        .report-table th:nth-child(6) {
+            width: 8%
+        }
+
+        .report-table th:nth-child(7) {
+            width: 8%
+        }
+
+        .report-table th:nth-child(8) {
+            width: 9%
+        }
+
+        .report-table th:nth-child(9) {
+            width: 9%
+        }
+
+        .report-table th:nth-child(10) {
+            width: 5%
+        }
+
+        .report-table th:nth-child(11) {
+            width: 5%
+        }
+
+        .report-table th:nth-child(12) {
+            width: 10%
+        }
+
+        .report-table th:nth-child(13) {
+            width: 7%
+        }
+    </style>
+</head>
+
+<body>
+    <div class="page">
+        <div class="top">
+            <div>
+                <h1>Branch Online Monitoring</h1>
+                <p>Summary, report, hourly heatmap and exact online/offline activity timeline.</p>
+            </div>
+            <div class="refresh-controls">
+                <div>
+                    <label>Auto refresh</label>
+                    <div class="refresh-row">
+                        <input id="refreshValue" type="number" min="1" value="1" />
+                        <select id="refreshUnit">
+                            <option value="seconds">Seconds</option>
+                            <option value="minutes" selected>Minutes</option>
+                        </select>
+                        <button class="secondary" id="autoRefreshBtn" onclick="toggleAutoRefresh()">Start</button>
+                        <button class="secondary" onclick="reloadAll()">Refresh Now</button>
+                    </div>
+                    <div id="refreshStatus" class="info"></div>
+                </div>
+            </div>
+        </div>
+
+        <section class="card connect">
+            <div class="grid connect-grid">
+                <div><label>API URL</label><input id="apiUrl" placeholder="https://api.example.com"></div>
+                <div><label>Bearer Token</label><input id="token" type="password" placeholder="ADMIN_TOKEN"></div>
+                <div class="actions"><button class="primary" onclick="saveAndLoad()">Connect & Load</button></div>
+            </div>
+            <div id="error" class="error"></div>
+        </section>
+
+        <section class="summary">
+            <div class="card metric">
+                <div class="k">Average Offline Rate</div>
+                <div id="avg" class="v">—</div>
+            </div>
+            <div class="card metric">
+                <div class="k">Shopping Offline Rate</div>
+                <div id="shopping" class="v">—</div>
+            </div>
+            <div class="card metric">
+                <div class="k">Food Offline Rate</div>
+                <div id="food" class="v">—</div>
+            </div>
+            <div class="card metric">
+                <div class="k">Grocery Offline Rate</div>
+                <div id="grocery" class="v">—</div>
+            </div>
+        </section>
+
+        <section class="card filters">
+            <div class="grid filter-grid">
+                <div><label>Operation Date From</label><input id="dateFrom" type="date"></div>
+                <div><label>Operation Date To</label><input id="dateTo" type="date"></div>
+                <div><label>Business ID</label><input id="businessId"></div>
+                <div><label>Branch ID</label><input id="branchId"></div>
+                <div><label>Service Type</label><select id="serviceType">
+                        <option value="">All</option>
+                        <option>ST_SHOPPING</option>
+                        <option>ST_FOOD</option>
+                        <option>ST_GROCERY</option>
+                    </select></div>
+                <div><label>Region</label><input id="region"></div>
+                <div><label>Business Status</label><select id="businessStatus">
+                        <option value="">All</option>
+                        <option selected>ACTIVE</option>
+                        <option>INACTIVE</option>
+                    </select></div>
+                <div><label>Branch Status</label><select id="branchStatus">
+                        <option value="">All</option>
+                        <option selected>ACTIVE</option>
+                        <option>INACTIVE</option>
+                    </select></div>
+                <div><label>App Status</label><select id="appStatus">
+                        <option value="">All</option>
+                        <option>ONLINE</option>
+                        <option>OFFLINE</option>
+                    </select></div>
+                <div><label>Search</label><input id="search" placeholder="business / branch / id"></div>
+                <div><label>Rows Per Page</label><select id="rpp">
+                        <option>10</option>
+                        <option selected>20</option>
+                        <option>50</option>
+                        <option>100</option>
+                    </select></div>
+                <div><label>Heatmap Date</label><input id="heatmapDate" type="date"></div>
+            </div>
+            <div class="right">
+                <button class="secondary" onclick="resetFilters()">Reset</button>
+                <button class="primary" onclick="applyFilters()">Search</button>
+            </div>
+            <div class="query" id="queryPreview">—</div>
+        </section>
+
+        <div class="tabs">
+            <button class="tab active" data-view="reportView" onclick="switchView(this)">Branch Report</button>
+            <button class="tab" data-view="heatmapView" onclick="switchView(this)">Hourly Heatmap</button>
+            <button class="tab" data-view="timelineView" onclick="switchView(this)">Branch Timeline</button>
+        </div>
+
+        <section id="reportView" class="view active">
+            <div class="card table-card">
+                <div class="table-head">
+                    <div><strong>Branch Report</strong>
+                        <div id="resultInfo" class="info">No data loaded</div>
+                    </div>
+                    <div id="loading" class="info"></div>
+                </div>
+                <div class="table-wrap">
+                    <table class="report-table">
+                        <thead>
+                            <tr>
+                                <th>No.</th>
+                                <th>Business</th>
+                                <th>Branch</th>
+                                <th>Service</th>
+                                <th>Region</th>
+                                <th>Device</th>
+                                <th>Operation</th>
+                                <th>Online Info</th>
+                                <th>Offline Info</th>
+                                <th>Success</th>
+                                <th>Failed</th>
+                                <th>Last Active</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rows">
+                            <tr>
+                                <td colspan="13" class="empty">Connect to load data.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="pager">
+                    <div id="pageInfo" class="info"></div>
+                    <div><button class="secondary small" onclick="changePage(-1)">Previous</button> <button
+                            class="secondary small" onclick="changePage(1)">Next</button></div>
+                </div>
+            </div>
+        </section>
+
+        <section id="heatmapView" class="view">
+            <div class="card heatmap-card">
+                <div class="section-title">
+                    <div>
+                        <h2>Hourly Branch Heatmap</h2>
+                        <div class="info">One row per branch. Each cell represents an hourly online/offline ratio for
+                            the selected date.</div>
+                    </div>
+                    <button class="primary" onclick="loadHeatmap()">Load Heatmap</button>
+                </div>
+                <div class="legend">
+                    <span><i class="dot online-dot"></i> mostly online</span>
+                    <span><i class="dot mixed-dot"></i> mixed</span>
+                    <span><i class="dot offline-dot"></i> mostly offline</span>
+                    <span><i class="dot unknown-dot"></i> no activity / outside known period</span>
+                </div>
+                <div class="note">
+                    Expected endpoint: <code>GET /portal/business/offline-rate/heatmap</code>. It should aggregate
+                    <code>branch_online_activity</code> into hourly buckets and return
+                    <code>online_minutes</code>/<code>offline_minutes</code> per branch/hour.
+                </div>
+                <div id="heatmapResult" class="info" style="margin:12px 0"></div>
+                <div id="heatmapWrap" class="heatmap-wrap">
+                    <div class="empty">Load a heatmap for the selected date.</div>
+                </div>
+            </div>
+        </section>
+
+        <section id="timelineView" class="view">
+            <div class="card timeline-card">
+                <div class="section-title">
+                    <div>
+                        <h2>Branch Online Timeframe</h2>
+                        <div class="info">Select a branch and date to view exact ONLINE/OFFLINE intervals.</div>
+                    </div>
+                    <button class="primary" onclick="loadManualTimeline()">Load Timeline</button>
+                </div>
+                <div class="grid filter-grid">
+                    <div><label>Branch Extension ID</label><input id="timelineBranchId" placeholder="BRX-..."></div>
+                    <div><label>Operation Date</label><input id="timelineDate" type="date"></div>
+                    <div><label>Service Type (optional)</label><input id="timelineService" placeholder="ST_SHOPPING">
+                    </div>
+                    <div></div>
+                </div>
+                <div class="note">
+                    Expected endpoint:
+                    <code>GET /portal/business/offline-rate/activity?branch_extension_id=...&operation_date=YYYY-MM-DD</code>.
+                    The backend should clip activity rows to the selected day.
+                </div>
+                <div id="timelineContainer" style="margin-top:14px">
+                    <div class="empty">Choose a branch or click “View Timeline” from the report.</div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <div id="timelineModal" class="modal">
+        <div class="modal-box">
+            <div class="modal-head">
+                <h3>Branch Activity Timeline</h3><button class="close" onclick="closeModal()">×</button>
+            </div>
+            <div id="modalTimeline"></div>
+        </div>
+    </div>
+
+    <script>
+        const OFFSET = '+07:00';
+
+        let refreshTimer = null;
+        let autoRefreshEnabled = false;
+
+        function formatDisplayDateTime(value) {
+            if (!value) return '—';
+            const d = new Date(value);
+            if (Number.isNaN(d.getTime())) return safe(value);
+
+            const day = String(d.getDate()).padStart(2, '0');
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const year = d.getFullYear();
+
+            let hours = d.getHours();
+            const minutes = String(d.getMinutes()).padStart(2, '0');
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12;
+            if (hours === 0) hours = 12;
+
+            return `${day}-${month}-${year} ${String(hours).padStart(2, '0')}:${minutes} ${ampm}`;
+        }
+
+        function getRefreshIntervalMs() {
+            const value = Math.max(1, Number($('refreshValue').value || 1));
+            const unit = $('refreshUnit').value;
+            return unit === 'seconds' ? value * 1000 : value * 60 * 1000;
+        }
+
+        function startAutoRefresh() {
+            stopAutoRefresh(false);
+            autoRefreshEnabled = true;
+            const ms = getRefreshIntervalMs();
+            refreshTimer = setInterval(() => reloadAll(), ms);
+            $('autoRefreshBtn').textContent = 'Stop';
+            $('refreshStatus').textContent = `Refreshing every ${$('refreshValue').value} ${$('refreshUnit').value}`;
+        }
+
+        function stopAutoRefresh(updateUi = true) {
+            if (refreshTimer) {
+                clearInterval(refreshTimer);
+                refreshTimer = null;
+            }
+            autoRefreshEnabled = false;
+            if (updateUi) {
+                $('autoRefreshBtn').textContent = 'Start';
+                $('refreshStatus').textContent = 'Auto refresh stopped';
+            }
+        }
+
+        function toggleAutoRefresh() {
+            if (autoRefreshEnabled) stopAutoRefresh();
+            else startAutoRefresh();
+        }
+
+        let page = 1, pages = 1;
+        const $ = id => document.getElementById(id);
+
+        function today() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` }
+        function base() { return $('apiUrl').value.trim().replace(/\/+$/, '') }
+        function headers() { const t = $('token').value.trim(); return { 'Content-Type': 'application/json', ...(t ? { Authorization: `Bearer ${t}` } : {}) } }
+        function q(obj) { return new URLSearchParams(Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== '' && v != null))).toString() }
+        function fromDt(d) { return `${d}T00:00:00${OFFSET}` }
+        function toDt(d) { return `${d}T23:59:59${OFFSET}` }
+        function dateParams() { return { operation_date_from: fromDt($('dateFrom').value), operation_date_to: toDt($('dateTo').value) } }
+        function commonFilters() {
+            return {
+                business_id: $('businessId').value.trim(), branch_id: $('branchId').value.trim(), service_type: $('serviceType').value,
+                region: $('region').value.trim(), business_status: $('businessStatus').value, branch_status: $('branchStatus').value,
+                app_status: $('appStatus').value, search: $('search').value.trim()
+            }
+        }
+        function reportParams() { return { ...dateParams(), ...commonFilters(), page, rpp: $('rpp').value } }
+        function updatePreview() { $('queryPreview').textContent = `/portal/business/offline-rate/report?${q(reportParams())}` }
+        async function get(path, params) {
+            const r = await fetch(`${base()}${path}?${q(params)}`, { headers: headers() });
+            const txt = await r.text(); let j; try { j = JSON.parse(txt) } catch { throw new Error(`HTTP ${r.status}: ${txt.slice(0, 240)}`) }
+            if (!r.ok || j.result === false) throw new Error(j.result_message || `HTTP ${r.status}`); return j.body
+        }
+        function saveAndLoad() { localStorage.setItem('bom_api', base()); localStorage.setItem('bom_token', $('token').value); page = 1; reloadAll() }
+        function switchView(btn) { document.querySelectorAll('.tab').forEach(x => x.classList.remove('active')); document.querySelectorAll('.view').forEach(x => x.classList.remove('active')); btn.classList.add('active'); $(btn.dataset.view).classList.add('active') }
+        function badge(v) { if (v === 'ONLINE') return '<span class="badge online">ONLINE</span>'; if (v === 'OFFLINE') return '<span class="badge offline">OFFLINE</span>'; if (v === 'ACTIVE') return '<span class="badge active">ACTIVE</span>'; if (v === 'INACTIVE') return '<span class="badge inactive">INACTIVE</span>'; return v ?? '—' }
+        function rate(v) { if (v == null) return '—'; let n = Number(v), c = n >= 80 ? 'high' : n >= 30 ? 'mid' : 'low'; return `<span class="${c}">${n.toFixed(2)}%</span>` }
+        function safe(v) { return v == null || v === '' ? '—' : String(v) }
+
+        async function loadSummary() {
+            const b = await get('/portal/business/offline-rate/summary', dateParams());
+            $('avg').textContent = `${Number(b.average_offline_rate ?? 0).toFixed(2)}%`;
+            $('shopping').textContent = `${Number(b.shopping_offline_rate ?? 0).toFixed(2)}%`;
+            $('food').textContent = `${Number(b.food_offline_rate ?? 0).toFixed(2)}%`;
+            $('grocery').textContent = `${Number(b.grocery_offline_rate ?? 0).toFixed(2)}%`;
+        }
+        async function loadReport() {
+            updatePreview(); $('loading').textContent = 'Loading...';
+            const b = await get('/portal/business/offline-rate/report', reportParams());
+            pages = Number(b.pages || 1); page = Number(b.page || page);
+            $('resultInfo').textContent = `${Number(b.records || 0).toLocaleString()} records · ${b.record_from || 0}-${b.record_to || 0}`;
+            $('pageInfo').textContent = `Page ${page} of ${pages}`;
+            const items = b.items || [];
+            $('rows').innerHTML = items.length ? items.map((x, index) => `<tr>
+    <td>${((page - 1) * Number($('rpp').value)) + index + 1}</td>
+    <td>
+      <b>${safe(x.business_name)}</b>
+      <div class="entity-status"><span class="info">${safe(x.business_id)}</span>${badge(x.business_status)}</div>
+    </td>
+    <td>
+      <b>${safe(x.branch_name)}</b>
+      <div class="entity-status"><span class="info">${safe(x.branch_id)}</span>${badge(x.branch_status)}</div>
+    </td>
+    <td>${safe(x.service_type)}</td>
+    <td>${safe(x.region)}</td>
+    <td>
+      <div class="device-line">
+        <span class="app-dot ${x.app_status === 'ONLINE' ? 'on' : 'off'}" title="${safe(x.app_status)}"></span>
+        <span>${safe(x.online_device)}</span>
+      </div>
+      <span class="info">${safe(x.app_status)}</span>
+    </td>
+    <td><div class="metric-pair"><b>${Number(x.operation_minutes || 0).toLocaleString()} min</b></div></td>
+    <td>
+      <div class="metric-pair">
+        <b>${Number(x.online_minutes || 0).toLocaleString()} min</b>
+        <span>${rate(x.online_rate)}</span>
+      </div>
+    </td>
+    <td>
+      <div class="metric-pair">
+        <b>${Number(x.offline_minutes || 0).toLocaleString()} min</b>
+        <span>${rate(x.offline_rate)}</span>
+      </div>
+    </td>
+    <td>${Number(x.order_success || 0).toLocaleString()}</td>
+    <td>${Number(x.order_failed || 0).toLocaleString()}</td>
+    <td>${formatDisplayDateTime(x.last_active_at)}</td>
+    <td><button class="secondary small" onclick='openTimeline(${JSON.stringify(JSON.stringify({ id: x.branch_extension_id, name: x.branch_name, service: x.service_type }))})'>Timeline</button></td>
+  </tr>`).join('') : `<tr><td colspan="13" class="empty">No matching records.</td></tr>`;
+            $('loading').textContent = '';
+        }
+        function changePage(d) { const n = page + d; if (n < 1 || n > pages) return; page = n; loadReport().catch(showError) }
+        function applyFilters() { page = 1; $('heatmapDate').value = $('dateFrom').value; $('timelineDate').value = $('dateFrom').value; reloadAll() }
+        function resetFilters() {
+            const t = today(); $('dateFrom').value = t; $('dateTo').value = t; $('heatmapDate').value = t; $('timelineDate').value = t;
+            ['businessId', 'branchId', 'region', 'appStatus', 'search'].forEach(id => $(id).value = '');
+            $('serviceType').value = ''; $('businessStatus').value = 'ACTIVE'; $('branchStatus').value = 'ACTIVE'; $('rpp').value = '20'; page = 1; reloadAll()
+        }
+        async function reloadAll() { if (!base()) { showError(new Error('API URL is required')); return } $('error').textContent = ''; try { await Promise.all([loadSummary(), loadReport()]) } catch (e) { showError(e) } }
+        function showError(e) { $('error').textContent = e.message }
+
+        async function loadHeatmap() {
+            if (!base()) return showError(new Error('API URL is required'));
+            const operationDate = $('heatmapDate').value;
+            $('heatmapResult').textContent = 'Loading...';
+            try {
+                const body = await get('/portal/business/offline-rate/heatmap', { operation_date: operationDate, ...commonFilters() });
+                renderHeatmap(body);
+            } catch (e) {
+                $('heatmapResult').textContent = '';
+                $('heatmapWrap').innerHTML = `<div class="empty">Heatmap API error: ${safe(e.message)}</div>`;
+            }
+        }
+        function renderHeatmap(body) {
+            const rows = body?.items || body?.records || [];
+            $('heatmapResult').textContent = `${rows.length.toLocaleString()} branches · ${body?.operation_date || $('heatmapDate').value}`;
+            const head = `<div class="hm-row hm-head"><div class="hm-name">Branch</div>${Array.from({ length: 24 }, (_, h) => `<div class="hm-name">${String(h).padStart(2, '0')}</div>`).join('')}</div>`;
+            const content = rows.map(r => {
+                const slots = r.hours || r.slots || [];
+                const byHour = new Map(slots.map(s => [Number(s.hour ?? new Date(s.start).getHours()), s]));
+                return `<div class="hm-row">
+      <div class="hm-name"><b>${safe(r.branch_name)}</b><br><span class="info">${safe(r.branch_id)} · ${safe(r.service_type)}</span></div>
+      ${Array.from({ length: 24 }, (_, h) => {
+                    const s = byHour.get(h);
+                    if (!s) return `<div class="hm-cell unknown" data-tip="${String(h).padStart(2, '0')}:00 · no data"></div>`;
+                    const on = Number(s.online_minutes || 0), off = Number(s.offline_minutes || 0), total = on + off;
+                    if (total <= 0) return `<div class="hm-cell unknown" data-tip="${String(h).padStart(2, '0')}:00 · no operational data"></div>`;
+                    const offPct = Math.round(off * 100 / total);
+                    const hue = Math.round(120 - (120 * offPct / 100));
+                    const bg = `hsl(${hue} 75% 48%)`;
+                    return `<div class="hm-cell" style="background:${bg}" data-tip="${String(h).padStart(2, '0')}:00 · online ${on}m · offline ${off}m · offline ${offPct}%"
+          onclick='openTimeline(${JSON.stringify(JSON.stringify({ id: r.branch_extension_id, name: r.branch_name, service: r.service_type, date: $('heatmapDate').value }))})'></div>`;
+                }).join('')}
+    </div>`;
+            }).join('');
+            $('heatmapWrap').innerHTML = `<div class="heatmap">${head}${content || '<div class="empty">No data.</div>'}</div>`;
+        }
+
+        async function openTimeline(serialized) {
+            const x = JSON.parse(serialized); const d = x.date || $('heatmapDate').value || $('dateFrom').value;
+            $('timelineBranchId').value = x.id; $('timelineDate').value = d; $('timelineService').value = x.service || '';
+            $('timelineModal').classList.add('open'); $('modalTimeline').innerHTML = '<div class="empty">Loading...</div>';
+            try { const b = await get('/portal/business/offline-rate/activity', { branch_extension_id: x.id, operation_date: d }); $('modalTimeline').innerHTML = timelineHtml(b, x, d) }
+            catch (e) { $('modalTimeline').innerHTML = `<div class="empty">${safe(e.message)}</div>` }
+        }
+        function closeModal() { $('timelineModal').classList.remove('open') }
+        async function loadManualTimeline() {
+            const id = $('timelineBranchId').value.trim(), d = $('timelineDate').value;
+            if (!id || !d) { $('timelineContainer').innerHTML = '<div class="empty">Branch extension ID and date are required.</div>'; return }
+            $('timelineContainer').innerHTML = '<div class="empty">Loading...</div>';
+            try { const b = await get('/portal/business/offline-rate/activity', { branch_extension_id: id, operation_date: d }); $('timelineContainer').innerHTML = timelineHtml(b, { id, name: b?.branch_name, service: b?.service_type }, d) }
+            catch (e) { $('timelineContainer').innerHTML = `<div class="empty">${safe(e.message)}</div>` }
+        }
+        function minOfDay(s) {
+            const d = new Date(s); return d.getHours() * 60 + d.getMinutes() + d.getSeconds() / 60
+        }
+        function timelineHtml(body, x, date) {
+            const items = body?.items || body?.activities || [];
+            const segs = items.map(a => {
+                let s = Math.max(0, minOfDay(a.started_at)), e = Math.min(1440, minOfDay(a.ended_at));
+                if (a.ended_at && new Date(a.ended_at).getDate() !== new Date(a.started_at).getDate()) e = 1440;
+                const left = s / 1440 * 100, width = Math.max(0, (e - s) / 1440 * 100), cls = (a.activity_status || a.status) === 'ONLINE' ? 'on' : 'off';
+                return `<div class="segment ${cls}" style="left:${left}%;width:${width}%" title="${safe(a.activity_status || a.status)} ${safe(a.started_at)} → ${safe(a.ended_at)}"></div>`;
+            }).join('');
+            const online = Number(body?.online_minutes || 0), offline = Number(body?.offline_minutes || 0), total = online + offline;
+            return `
+    <div class="timeline-meta">
+      <div class="meta-box"><div class="k">Branch</div><div class="v">${safe(x.name || body?.branch_name)}<br><span class="info">${safe(x.id || body?.branch_extension_id)}</span></div></div>
+      <div class="meta-box"><div class="k">Date</div><div class="v">${date}</div></div>
+      <div class="meta-box"><div class="k">Online</div><div class="v">${online.toLocaleString()} min</div></div>
+      <div class="meta-box"><div class="k">Offline</div><div class="v">${offline.toLocaleString()} min ${total ? `· ${(offline * 100 / total).toFixed(2)}%` : ''}</div></div>
+    </div>
+    <div class="timeline-scale">${Array.from({ length: 24 }, (_, h) => `<div>${String(h).padStart(2, '0')}</div>`).join('')}</div>
+    <div class="timeline-track">${segs}</div>
+    <div class="interval-list">${items.length ? items.map(a => `<div class="interval"><div>${badge(a.activity_status || a.status)}</div><div>${safe(a.started_at)}</div><div>${safe(a.ended_at)}</div><div>${safe(a.duration_minutes ?? (a.duration_seconds != null ? Math.round(Number(a.duration_seconds) / 60) : ''))}${a.duration_seconds != null || a.duration_minutes != null ? ' min' : ''}</div></div>`).join('') : '<div class="empty">No activity intervals.</div>'}</div>`;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const t = today();['dateFrom', 'dateTo', 'heatmapDate', 'timelineDate'].forEach(id => $(id).value = t);
+            $('apiUrl').value = localStorage.getItem('bom_api') || ''; $('token').value = localStorage.getItem('bom_token') || '';
+            document.querySelectorAll('input,select').forEach(el => el.addEventListener('change', updatePreview));
+            ['refreshValue', 'refreshUnit'].forEach(id => $(id).addEventListener('change', () => { if (autoRefreshEnabled) startAutoRefresh(); }));
+            updatePreview();
+        });
+    </script>
+</body>
+
+</html>
